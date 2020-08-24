@@ -12,6 +12,8 @@ data/points/KleinBottle5D.off_sc.dot
 data/points/human.off_dist
 data/points/human.off_sc.off
 data/points/human.off_sc.txt
+# Python cache
+**/__pycache__/*
 
 # IDE specific
 # CLion

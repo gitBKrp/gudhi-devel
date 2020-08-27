@@ -763,20 +763,25 @@ class PersistenceBow(BaseEstimator, TransformerMixin, ClusterMixin):
             X (list of n x 2 numpy arrays): input persistence diagrams.
             y (n x 1 array): persistence diagram labels.
         """
-        if self.transformator:
-            X = self.transformator.fit_transform(X, y)
-        if self.scaler:
-            X = self.scaler.fit_transform(X, y)
-        if self.sampler:
-            X = self.sampler.fit_transform(X, y)
-        X = np.concatenate(X)
-        self.cluster.fit(X, y, sample_weight)
+        if X:
+            if self.transformator:
+                X = self.transformator.fit_transform(X, y)
+            if self.scaler:
+                X = self.scaler.fit_transform(X, y)
+            if self.sampler:
+                X = self.sampler.fit_transform(X, y)
+            X = np.concatenate(X)
+            self.cluster.fit(X, y, sample_weight)
 
         return self
 
     def predict(self, X, sample_weight=None):
         """
         Cluster predict on a list of persistence diagrams.
+            X (list of n x 2 numpy arrays): input persistence diagrams.
+            sample_weight (size of X): The weights for each observation in X. 
+                           If None, all observations are assigned equal weight.
+
         """
         out = []
         for diagram in X:
@@ -794,26 +799,27 @@ class PersistenceBow(BaseEstimator, TransformerMixin, ClusterMixin):
             pbow calculation for each diagram.
         """
         out = []
-        if self.transformator:
-            X = self.transformator.transform(X)
-        if self.scaler:
-            X = self.scaler.transform(X)
+        if X:
+            if self.transformator:
+                X = self.transformator.transform(X)
+            if self.scaler:
+                X = self.scaler.transform(X)
 
-        for diagram in X:
-            pred = self.cluster.predict(diagram)
-            weights_ = None
+            for diagram in X:
+                pred = self.cluster.predict(diagram)
+                weights_ = None
 
-            if self.cluster_weighting:
-                weights_ = tuple(map(self.cluster_weighting, diagram))
-            histogram = np.bincount(pred, weights=weights_, minlength=self.n_clusters)
+                if self.cluster_weighting:
+                    weights_ = tuple(map(self.cluster_weighting, diagram))
+                histogram = np.bincount(pred, weights=weights_, minlength=self.n_clusters)
 
-            if self.normalize:
-                norm = np.linalg.norm(histogram)
-                if not np.isclose(norm, 0):
-                    histogram = np.array([np.sign(el) * np.sqrt(np.abs(el)) for el in histogram]) \
-                                / norm
+                if self.normalize:
+                    norm = np.linalg.norm(histogram)
+                    if not np.isclose(norm, 0):
+                        histogram = np.array([np.sign(el) * np.sqrt(np.abs(el)) for el in histogram]) \
+                                    / norm
 
-            out.append(histogram)
+                out.append(histogram)
 
         return np.array(out)
 
@@ -862,15 +868,16 @@ class StablePersistenceBow(BaseEstimator, TransformerMixin, ClusterMixin):
         self.cluster_weighting = cluster_weighting
 
     def fit(self, X, y=None):
-        if self.transformator:
-            X = self.transformator.fit_transform(X, y)
-        if self.scaler:
-            X = self.scaler.fit_transform(X, y)
-        if self.sampler:
-            X = self.sampler.fit_transform(X, y)
+        if X:
+            if self.transformator:
+                X = self.transformator.fit_transform(X, y)
+            if self.scaler:
+                X = self.scaler.fit_transform(X, y)
+            if self.sampler:
+                X = self.sampler.fit_transform(X, y)
 
-        X = np.concatenate(X)
-        self.mixture.fit(X, y)
+            X = np.concatenate(X)
+            self.mixture.fit(X, y)
 
         return self
 
@@ -895,24 +902,25 @@ class StablePersistenceBow(BaseEstimator, TransformerMixin, ClusterMixin):
             spbow calculation for each diagram.
         """
         out = []
-        if self.transformator:
-            X = self.transformator.transform(X)
-        if self.scaler:
-            X = self.scaler.transform(X)
+        if X:
+            if self.transformator:
+                X = self.transformator.transform(X)
+            if self.scaler:
+                X = self.scaler.transform(X)
 
-        for diagram in X:
-            probabilities = self.mixture.predict_proba(diagram)
-            if self.cluster_weighting:
-                probabilities *= np.array(list(map(self.cluster_weighting, diagram))).reshape(-1, 1)
-            histogram = np.sum(probabilities, axis=0) * self.mixture.weights_
+            for diagram in X:
+                probabilities = self.mixture.predict_proba(diagram)
+                if self.cluster_weighting:
+                    probabilities *= np.array(list(map(self.cluster_weighting, diagram))).reshape(-1, 1)
+                histogram = np.sum(probabilities, axis=0) * self.mixture.weights_
 
-            if self.normalize:
-                norm = np.linalg.norm(histogram)
-                if not np.isclose(norm, 0):
-                    histogram = np.array([np.sign(el) * np.sqrt(np.abs(el)) for el in histogram]) \
-                                / norm
+                if self.normalize:
+                    norm = np.linalg.norm(histogram)
+                    if not np.isclose(norm, 0):
+                        histogram = np.array([np.sign(el) * np.sqrt(np.abs(el)) for el in histogram]) \
+                                    / norm
 
-            out.append(histogram)
+                out.append(histogram)
 
         return np.array(out)
 

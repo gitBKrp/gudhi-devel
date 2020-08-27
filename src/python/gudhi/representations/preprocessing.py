@@ -10,7 +10,7 @@
 import numpy as np
 from sklearn.base          import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.utils         import validation
 #############################################
 # Preprocessing #############################
 #############################################
@@ -427,7 +427,8 @@ class RandomPDSampler(BaseEstimator, TransformerMixin):
         Returns:
             Array with single PD (np.array of size max_points).
         """
-        
+        if not X:
+            return []
         return [_sample(
             np.concatenate(X), 
             self.max_points, 
@@ -458,23 +459,23 @@ class GridPDSampler(BaseEstimator, TransformerMixin):
         self.random_state = random_state
        
     def _grid_generator(self, X, y_points, x_points):
-    """Iterate over grid cells"""
-    for y in range(1, len(y_points)):
-        if y == 1:
-            mask = y_points[y - 1] <= X[:, 1]
-        else:
-            mask = y_points[y - 1] <  X[:, 1]
-        mask &= X[:, 1] <= y_points[y]
-        y_split = X[mask]
-
-        for x in range(1, len(x_points)):
-            if x == 1:
-                mask = x_points[x - 1] <= y_split[:, 0]
+        """Iterate over grid cells"""
+        for y in range(1, len(y_points)):
+            if y == 1:
+                mask = y_points[y - 1] <= X[:, 1]
             else:
-                mask = x_points[x - 1] <  y_split[:, 0]
-            mask &= y_split[:, 0] <= x_points[x]
+                mask = y_points[y - 1] <  X[:, 1]
+            mask &= X[:, 1] <= y_points[y]
+            y_split = X[mask]
 
-            yield y_split[mask]
+            for x in range(1, len(x_points)):
+                if x == 1:
+                    mask = x_points[x - 1] <= y_split[:, 0]
+                else:
+                    mask = x_points[x - 1] <  y_split[:, 0]
+                mask &= y_split[:, 0] <= x_points[x]
+
+                yield y_split[mask]
 
     def fit(self, X, y=None):
         """
@@ -497,6 +498,8 @@ class GridPDSampler(BaseEstimator, TransformerMixin):
             Array with single PD (np.array of size max_points).
         """
         out = []
+        if not X:
+            return out
         X = np.concatenate(X)
         y_points = np.linspace(np.min(X[:, 1]), np.max(X[:, 1]), self.grid_shape[0] + 1)
         x_points = np.linspace(np.min(X[:, 0]), np.max(X[:, 0]), self.grid_shape[1] + 1)

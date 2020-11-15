@@ -40,45 +40,62 @@ def test_pbow_standard_case():
     _input = [np.array([np.array(c) + np.random.normal()
                         for i in range(10)])
               for c in centers]
-    pbow = PersistenceBow(KMeans(n_clusters=3, 
-                                init=np.array(centers),
-                                random_state=1),
-                                scaler=None,
-                                transformator=None,
-                                normalize=False)
+    pbow = PersistenceBow(KMeans(n_clusters=3,
+                                 init=np.array(centers),
+                                 random_state=1),
+                                 scaler=None,
+                                 transformator=None,
+                                 normalize=False,
+                                 cluster_weighting=lambda x: 0.5)
 
-    assert np.all(pbow.fit_transform(_input) == [[10, 0, 0],
-                                                 [0, 10, 0],
-                                                 [0, 0, 10]])
+    assert np.allclose(pbow.fit_transform(_input), [[5, 0, 0],
+                                                    [0, 5, 0],
+                                                    [0, 0, 5]])
+
+def test_spbow_standard_case():
+    # Generate three distinctive clouds of 30 points
+    centers = [[10, 10], [30, 30], [50, 50]]
+    _input = [np.array([np.array(c) + np.random.normal()
+                        for i in range(30)])
+              for c in centers]
+    spbow = StablePersistenceBow(GaussianMixture(n_components=3, 
+                                                 random_state=32),
+                                 normalize=False,
+                                 scaler=None,
+                                 transformator=None)
+    output_ = spbow.fit_transform(_input)
+    assert np.allclose(output_, [[10, 0, 0],
+                                 [0, 0, 10],
+                                 [0, 10, 0]])
 
 def test_execute_all():
     _input = [np.array([[ c + np.random.normal(), c + np.random.normal()]
                         for i in range(10)])
               for c in range(10, 30, 10)]
     pbow = PersistenceBow(KMeans(n_clusters=1),
-                          sampler=RandomPDSampler(max_points=1, 
+                          sampler=RandomPDSampler(max_points=1,
                                                   weight_function=lambda x: 1),
                           cluster_weighting=lambda x: x[1])
     pbow.fit_transform(_input, sample_weight=1)
-    
+
     pbow = PersistenceBow(KMeans(n_clusters=1),
-                          sampler=GridPDSampler(grid_shape=(2, 2), 
+                          sampler=GridPDSampler(grid_shape=(2, 2),
                                                 max_points=4,
                                                 weight_function=lambda x: 1),
                           cluster_weighting=lambda x: 1)
     pbow.fit_transform(_input, sample_weight=1)
-    
+
     spbow = StablePersistenceBow(GaussianMixture(),
-                          sampler=RandomPDSampler(max_points=2, 
+                          sampler=RandomPDSampler(max_points=2,
                                                   weight_function=lambda x: 1),
                           cluster_weighting=lambda x: x[1])
-    
+
     spbow.fit_transform(_input)
-    
+
     spbow = StablePersistenceBow(GaussianMixture(),
-                                 sampler=GridPDSampler(grid_shape=(2, 2), 
+                                 sampler=GridPDSampler(grid_shape=(2, 2),
                                  max_points=2,
                                  weight_function=lambda x: 1),
                                  cluster_weighting=lambda x: 1)
-    
-    spbow.fit_transform(_input)    
+
+    spbow.fit_transform(_input)
